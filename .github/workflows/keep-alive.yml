@@ -1,0 +1,16 @@
+name: Keep Hugging Face Space Alive
+
+on:
+  schedule:
+    # 每4小时一次，每天6次
+    - cron: '0 */4 * * *'
+  workflow_dispatch: # 允许手动触发
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Hugging Face Space
+        run: |
+          curl -s "https://gyj1980-proxy.hf.space/" > /dev/null
+          echo "✅ Space pinged successfully at $(date)"
