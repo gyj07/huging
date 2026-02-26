@@ -10,7 +10,18 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping Hugging Face Space
+      - name: Ping Hugging Face Spaces
         run: |
+          # 唤醒第一个 Space (proxy)
+          echo "Pinging proxy space: https://gyj1980-proxy.hf.space/"
           curl -s "https://gyj1980-proxy.hf.space/" > /dev/null
-          echo "✅ Space pinged successfully at $(date)"
+          echo "✅ Space proxy pinged successfully at $(date)"
+          echo ""
+          
+          # 唤醒第二个 Space (epg)
+          echo "Pinging epg space: https://gyj1980-epg.hf.space/epg"
+          curl -s "https://gyj1980-epg.hf.space/epg" > /dev/null
+          echo "✅ Space epg pinged successfully at $(date)"
+          echo ""
+          
+          echo "All spaces have been pinged successfully!"
