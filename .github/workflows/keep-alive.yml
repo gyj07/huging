@@ -4,12 +4,24 @@ on:
   schedule:
     # 每4小时一次，每天6次
     - cron: '0 */4 * * *'
+    # 每月1号和15号北京时间凌晨2点执行（UTC时间18点）
+    - cron: '18 0 1,15 * *'
   workflow_dispatch: # 允许手动触发
+
+# 添加写入仓库的权限
+permissions:
+  contents: write
 
 jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # 确保有写入权限
+          persist-credentials: true
+      
       - name: Ping Hugging Face Spaces
         run: |
           # 唤醒第一个 Space (proxy)
@@ -25,3 +37,66 @@ jobs:
           echo ""
           
           echo "All spaces have been pinged successfully!"
+      
+      - name: Create status report (on 1st and 15th)
+        if: |
+          github.event.schedule == '18 0 1,15 * *' || 
+          github.event_name == 'workflow_dispatch'
+        run: |
+          # 创建status目录（如果不存在）
+          mkdir -p status-reports
+          
+          # 生成文件名（使用日期）
+          DATE=$(date +'%Y-%m-%d')
+          FILE_NAME="status-reports/status_${DATE}.txt"
+          
+          # 创建说明文件
+          cat > "$FILE_NAME" << EOF
+          Hugging Face Space 保活服务运行报告
+          ======================================
+          生成时间: $(date '+%Y-%m-%d %H:%M:%S %Z')
+          
+          运行状态: ✅ 正常运行
+          
+          监控的Space:
+          1. proxy: https://gyj1980-proxy.hf.space/
+          2. epg: https://gyj1980-epg.hf.space/epg
+          
+          保活策略:
+          - 每4小时自动ping一次所有Space
+          - 每月1日和15日生成此状态报告
+          
+          最后ping时间: $(date '+%Y-%m-%d %H:%M:%S')
+          
+          服务状态: 运行正常
+          ======================================
+          EOF
+          
+          echo "✅ 状态报告已创建: $FILE_NAME"
+          
+          # 显示文件内容
+          cat "$FILE_NAME"
+      
+      - name: Commit and push status report
+        if: |
+          github.event.schedule == '18 0 1,15 * *' || 
+          github.event_name == 'workflow_dispatch'
+        run: |
+          # 配置git用户
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          
+          # 添加文件
+          git add status-reports/
+          
+          # 检查是否有变更需要提交
+          if git diff --staged --quiet; then
+            echo "📝 没有新的变更需要提交"
+          else
+            # 提交变更
+            git commit -m "chore: 添加状态报告 $(date '+%Y-%m-%d')"
+            
+            # 推送到仓库
+            git push
+            echo "✅ 状态报告已推送到仓库"
+          fi
